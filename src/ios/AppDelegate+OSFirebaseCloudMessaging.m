@@ -26,6 +26,26 @@
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
     NSDictionary *updatedUserInfo = [self fixSoundPath:userInfo];
+    
+    // Automatically set badge from Firebase notification payload
+    // Expected Firebase payload format:
+    // {
+    //   "notification": { "title": "...", "body": "..." },
+    //   "apns": {
+    //     "payload": {
+    //       "aps": { "badge": 5 }
+    //     }
+    //   }
+    // }
+    // The badge value is an absolute count, not an increment.
+    NSDictionary *aps = updatedUserInfo[@"aps"];
+    if ([aps isKindOfClass:[NSDictionary class]]) {
+        id badgeValue = aps[@"badge"];
+        if (badgeValue != nil) {
+            NSInteger badge = [badgeValue integerValue];
+            [UIApplication sharedApplication].applicationIconBadgeNumber = badge;
+        }
+    }
 
     (void)[FirebaseMessagingApplicationDelegate.shared application:application didReceiveRemoteNotification:updatedUserInfo fetchCompletionHandler:completionHandler];
 }
