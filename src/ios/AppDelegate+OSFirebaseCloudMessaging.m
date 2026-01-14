@@ -27,25 +27,28 @@
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
     NSDictionary *updatedUserInfo = [self fixSoundPath:userInfo];
     
-    // Automatically set badge from Firebase notification payload
+    // Automatically set badge from ExtraDataItem in Firebase notification payload
     // Expected Firebase payload format:
-    // {
-    //   "notification": { "title": "...", "body": "..." },
-    //   "apns": {
-    //     "payload": {
-    //       "aps": { "badge": 5 }
-    //     }
-    //   }
-    // }
-    // The badge value is an absolute count, not an increment.
-    NSDictionary *aps = updatedUserInfo[@"aps"];
-    if ([aps isKindOfClass:[NSDictionary class]]) {
-        id badgeValue = aps[@"badge"];
-        if (badgeValue != nil) {
-            NSInteger badge = [badgeValue integerValue];
-            [UIApplication sharedApplication].applicationIconBadgeNumber = badge;
+    // ExtraDataItem with key: "os_badge_number" (case-sensitive)
+    // Value: Text string representing a base-10 non-negative integer (0 to 2147483647)
+    // The badge value is an absolute count to set, not an increment.
+    // If key is present but value is invalid, badge is not changed.
+    // If key is absent, do nothing.
+    id badgeValue = updatedUserInfo[@"os_badge_number"];
+    if ([badgeValue isKindOfClass:[NSString class]]) {
+        NSString *badgeString = [(NSString *)badgeValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        
+        // Validate: non-empty, represents valid non-negative integer
+        if (badgeString.length > 0) {
+            NSScanner *scanner = [NSScanner scannerWithString:badgeString];
+            NSInteger badge = 0;
+            if ([scanner scanInteger:&badge] && [scanner isAtEnd] && badge >= 0 && badge <= INT_MAX) {
+                [UIApplication sharedApplication].applicationIconBadgeNumber = badge;
+            }
+            // If validation fails, silently ignore (don't change badge)
         }
     }
+    // If key absent or not a string, do nothing
 
     (void)[FirebaseMessagingApplicationDelegate.shared application:application didReceiveRemoteNotification:updatedUserInfo fetchCompletionHandler:completionHandler];
 }
