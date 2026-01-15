@@ -50,6 +50,9 @@
     }
     // If key absent or not a string, do nothing
 
+    (void)[FirebaseMessagingApplicationDelegate.shared application:application didReceiveRemoteNotification:updatedUserInfo fetchCompletionHandler:completionHandler];
+}
+
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
     (void)[FirebaseMessagingApplicationDelegate.shared application:application didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
 }
