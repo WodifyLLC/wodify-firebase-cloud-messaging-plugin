@@ -3,6 +3,7 @@ package com.outsystems.firebase.cloudmessaging
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import com.google.gson.Gson
@@ -16,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import me.leolin.shortcutbadger.ShortcutBadger
 import org.apache.cordova.CallbackContext
 import org.apache.cordova.CordovaInterface
 import org.apache.cordova.CordovaWebView
@@ -46,6 +48,8 @@ class OSFirebaseCloudMessaging : CordovaImplementation() {
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 123123
         const val FCM_EXPLICIT_NOTIFICATION = "com.outsystems.fcm.notification"
         const val GOOGLE_MESSAGE_ID = "google.message_id"
+        private const val BADGE_COUNT_KEY = "badge_count"
+        private const val BADGE_PREFERENCES_NAME = "os_fcm_badge_prefs"
     }
 
     override fun initialize(cordova: CordovaInterface, webView: CordovaWebView) {
@@ -112,7 +116,7 @@ class OSFirebaseCloudMessaging : CordovaImplementation() {
             sendPluginResult(true)
         }
         override fun callbackBadgeNumber(number: Int) {
-            //Does nothing on android
+            setBadgeCount(number)
         }
         override fun callbackError(error: FirebaseMessagingError) {
             sendPluginResult(null, Pair(formatErrorCode(error.code), error.description))
@@ -197,13 +201,26 @@ class OSFirebaseCloudMessaging : CordovaImplementation() {
                     deliveryMetricsExportToBigQueryEnabled(callbackContext)
                 }
 
-                // non available methods
                 "setBadge" -> {
-                    sendError(callbackContext, FirebaseMessagingError.SET_BADGE_NOT_AVAILABLE_ERROR)
+                    try {
+                        val badgeNumber = args.getInt(0)
+                        if (badgeNumber < 0) {
+                            sendError(callbackContext, FirebaseMessagingError.SET_BADGE_NOT_AVAILABLE_ERROR)
+                        } else {
+                            if (setBadgeCount(badgeNumber)) {
+                                sendSuccess(callbackContext)
+                            } else {
+                                sendError(callbackContext, FirebaseMessagingError.SET_BADGE_NOT_AVAILABLE_ERROR)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        sendError(callbackContext, FirebaseMessagingError.SET_BADGE_NOT_AVAILABLE_ERROR)
+                    }
                 }
 
                 "getBadge" -> {
-                    sendError(callbackContext, FirebaseMessagingError.GET_BADGE_NOT_AVAILABLE_ERROR)
+                    val count = getStoredBadgeCount()
+                    sendSuccess(callbackContext, count.toString())
                 }
 
                 "getAPNsToken" -> {
@@ -325,6 +342,8 @@ class OSFirebaseCloudMessaging : CordovaImplementation() {
 
     private fun clearNotifications(callbackContext: CallbackContext) {
         if (controller.clearNotifications()) {
+            // Also clear the badge when notifications are cleared
+            setBadgeCount(0)
             sendSuccess(callbackContext)
         } else {
             sendError(callbackContext, FirebaseMessagingError.CLEARING_NOTIFICATIONS_ERROR)
@@ -378,5 +397,34 @@ class OSFirebaseCloudMessaging : CordovaImplementation() {
             }
         )
         callbackContext.sendPluginResult(pluginResult)
+    }
+
+    private fun getBadgePreferences(): SharedPreferences {
+        return getActivity().getSharedPreferences(BADGE_PREFERENCES_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun saveBadgeCount(count: Int) {
+        val prefs = getBadgePreferences()
+        prefs.edit().putInt(BADGE_COUNT_KEY, count).apply()
+    }
+
+    private fun getStoredBadgeCount(): Int {
+        val prefs = getBadgePreferences()
+        return prefs.getInt(BADGE_COUNT_KEY, 0)
+    }
+
+    private fun setBadgeCount(count: Int): Boolean {
+        return try {
+            val context = getActivity()
+            if (count > 0) {
+                ShortcutBadger.applyCount(context, count)
+            } else {
+                ShortcutBadger.removeCount(context)
+            }
+            saveBadgeCount(count)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 }
