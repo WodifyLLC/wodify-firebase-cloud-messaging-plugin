@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import com.google.firebase.FirebaseApp
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.outsystems.plugins.firebasemessaging.controller.*
@@ -142,6 +143,10 @@ class OSFirebaseCloudMessaging : CordovaImplementation() {
                     getToken(callbackContext)
                 }
 
+                "getFirebaseAppInfo" -> {
+                    getFirebaseAppInfo(callbackContext)
+                }
+
                 "subscribe" -> {
                     args.getString(0)?.let {
                         topicOperation(
@@ -218,6 +223,22 @@ class OSFirebaseCloudMessaging : CordovaImplementation() {
         controller.getToken()?.let {
             sendSuccess(callbackContext, it)
         } ?: sendError(callbackContext, FirebaseMessagingError.OBTAINING_TOKEN_ERROR)
+    }
+
+    private fun getFirebaseAppInfo(callbackContext: CallbackContext) {
+        // Firebase options are unavailable if the app was built without google-services config.
+        val options = try {
+            FirebaseApp.getInstance().options
+        } catch (e: Exception) {
+            null
+        }
+        val result = JSONObject().apply {
+            put("bundleId", getActivity().packageName)
+            put("projectId", options?.projectId ?: "")
+            put("senderId", options?.gcmSenderId ?: "")
+            put("appId", options?.applicationId ?: "")
+        }
+        sendSuccess(callbackContext, result.toString())
     }
 
     private suspend fun topicOperation(callbackContext: CallbackContext, operation: suspend () -> Boolean, error: FirebaseMessagingError) {
