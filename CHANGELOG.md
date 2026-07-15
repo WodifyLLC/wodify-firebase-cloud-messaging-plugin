@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The changes documented here do not include those from the original repository.
 
+### [2.5.3-wodify.3]
+
+### Features
+
+- (all) New `getFirebaseAppInfo` method reporting the app's bundle id and the Firebase registration baked into the build (`projectId`, `senderId`, `appId`), returned as a JSON string. Enables per-project push routing on the backend (WCS-25309).
+
 ### [2.5.3]
 
 ### Fixes

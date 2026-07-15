@@ -135,6 +135,34 @@ class OSFirebaseCloudMessaging: CDVPlugin {
         }
     }
     
+    @objc(getFirebaseAppInfo:)
+    func getFirebaseAppInfo(command: CDVInvokedUrlCommand) {
+        self.commandDelegate.run { [weak self] in
+            guard let self else { return }
+
+            // Firebase identity comes from the GoogleService-Info.plist baked into this build.
+            var firebaseConfig: [String: Any] = [:]
+            if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+               let plist = NSDictionary(contentsOfFile: path) as? [String: Any] {
+                firebaseConfig = plist
+            }
+
+            let info: [String: String] = [
+                "bundleId": Bundle.main.bundleIdentifier ?? "",
+                "projectId": firebaseConfig["PROJECT_ID"] as? String ?? "",
+                "senderId": firebaseConfig["GCM_SENDER_ID"] as? String ?? "",
+                "appId": firebaseConfig["GOOGLE_APP_ID"] as? String ?? ""
+            ]
+
+            // Result is a JSON string to match the Android implementation.
+            guard let data = try? JSONSerialization.data(withJSONObject: info),
+                  let json = String(data: data, encoding: .utf8)
+            else { return self.send(error: .obtainingTokenError, callbackId: command.callbackId) }
+
+            self.sendSuccess(result: json, callbackId: command.callbackId)
+        }
+    }
+
     @objc(clearNotifications:)
     func clearNotifications(command: CDVInvokedUrlCommand) {
         self.commandDelegate.run { [weak self] in

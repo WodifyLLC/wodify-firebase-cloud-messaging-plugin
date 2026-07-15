@@ -8,6 +8,10 @@ exports.getAPNsToken = function (success, error) {
     exec(success, error, 'OSFirebaseCloudMessaging', 'getAPNsToken');
 };
 
+exports.getFirebaseAppInfo = function (success, error) {
+    exec(success, error, 'OSFirebaseCloudMessaging', 'getFirebaseAppInfo');
+};
+
 exports.subscribe = function (topic, success, error) {
     exec(success, error, 'OSFirebaseCloudMessaging', 'subscribe', [topic]);
 };
