@@ -76,14 +76,6 @@
       <uses-permission android:name="com.android.launcher.permission.UNINSTALL_SHORTCUT" />
     </config-file>
 
-    <config-file target="AndroidManifest.xml" parent="/manifest/application">
-      <receiver android:name="me.leolin.shortcutbadger.impl.BadgeIntentReceiver" android:exported="false">
-        <intent-filter>
-          <action android:name="android.intent.action.BADGE_COUNT_UPDATE" />
-        </intent-filter>
-      </receiver>
-    </config-file>
-
     <source-file src="src/android/com/outsystems/firebase/cloudmessaging/OSFCMPermissionEvents.kt" target-dir="app/src/main/kotlin/com/outsystems/firebase/cloudmessaging"/>
     <source-file src="src/android/com/outsystems/firebase/cloudmessaging/OSFirebaseCloudMessaging.kt" target-dir="app/src/main/kotlin/com/outsystems/firebase/cloudmessaging"/>
     <framework src="src/android/com/outsystems/firebase/cloudmessaging/build.gradle" custom="true" type="gradleReference" />
